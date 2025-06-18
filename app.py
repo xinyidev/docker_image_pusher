@@ -20,7 +20,7 @@ def image_recognition(img):
     return result
 
 
-@app.route('/ocr/v1/reader', methods=['POST'])
+@app.route('/captchaocr/v1/reader', methods=['POST'])
 def ask():
     req = request.get_json(force=True)
     content = req['content']
