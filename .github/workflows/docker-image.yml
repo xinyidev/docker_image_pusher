@@ -1,37 +1,61 @@
-name: Docker 镜像构建
+name: Docker
 
 on:
+  workflow_dispatch:
   push:
+    branches: [ main ]
+
+
+env:
+  ALIYUN_REGISTRY: "${{ secrets.ALIYUN_REGISTRY }}"
+  ALIYUN_NAME_SPACE: "${{ secrets.ALIYUN_NAME_SPACE }}"
+  ALIYUN_REGISTRY_USER: "${{ secrets.ALIYUN_REGISTRY_USER }}"
+  ALIYUN_REGISTRY_PASSWORD: "${{ secrets.ALIYUN_REGISTRY_PASSWORD }}"
+
+  # 默认使用仓库名作为镜像名称
+  IMAGE_NAME: dddocr
 
 jobs:
-  build-and-push:
+  build:
+    name: Pull
     runs-on: ubuntu-latest
-
-    env:
-      # 默认使用仓库名作为镜像名称
-      IMAGE_NAME: dddocr
-
     steps:
-      - name: 检出代码
+      - name: Before freeing up disk space
+        run: |
+          echo "Before freeing up disk space"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+
+      # 增加可用磁盘空间
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+
+          root-reserve-mb: 2048
+          swap-size-mb: 128
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+          # 如果空间还是不够用，可以把以下开启，清理出更多空间
+          # remove-android: 'true'
+          # remove-codeql: 'true'
+          build-mount-path: '/var/lib/docker/'
+
+      - name: Restart docker
+        run: sudo service docker restart
+
+      - name: Free up disk space complete
+        run: |
+          echo "Free up disk space complete"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: 登录阿里云容器镜像服务
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.ALIYUN_REGISTRY }}
-          username: ${{ secrets.ALIYUN_REGISTRY_USER }}
-          password: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
-
-      - name: 设置 Docker Buildx
+      - name: Docker Setup Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: 缓存 Docker 层
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
 
       - name: 获取版本号
         id: version
@@ -43,18 +67,25 @@ jobs:
           # 如果设置了自定义镜像名称则使用，否则使用默认值（仓库名）
           echo "NAME=${IMAGE_NAME_OVERRIDE:-$IMAGE_NAME}" >> $GITHUB_OUTPUT
 
-      - name: 构建并推送镜像
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAME_SPACE }}/${{ steps.image.outputs.NAME }}:latest
-            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAME_SPACE }}/${{ steps.image.outputs.NAME }}:${{ steps.version.outputs.VERSION }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-
-      - name: 更新缓存
+      - name: Build and push image Aliyun
         run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          docker login -u $ALIYUN_REGISTRY_USER -p $ALIYUN_REGISTRY_PASSWORD $ALIYUN_REGISTRY
+          image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$steps.image.outputs.NAME"
+          new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$steps.image.outputs.NAME$steps.version.outputs.VERSION"
+          docker build . --file .dockerfile --tag $tag
+          echo "docker tag $image $new_image"
+          docker tag $image $new_image
+          echo "docker push $new_image"
+          docker push $new_image
+          echo "开始清理磁盘空间"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+          docker rmi $image
+          docker rmi $new_image
+          echo "磁盘空间清理完毕"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="     
+          
+          done < images.txt
