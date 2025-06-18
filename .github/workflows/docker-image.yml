@@ -72,7 +72,7 @@ jobs:
           docker login -u $ALIYUN_REGISTRY_USER -p $ALIYUN_REGISTRY_PASSWORD $ALIYUN_REGISTRY
           image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$steps.image.outputs.NAME"
           new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$steps.image.outputs.NAME$steps.version.outputs.VERSION"
-          docker build . --file .dockerfile --tag $tag
+          docker build . --file .dockerfile --tag $image
           echo "docker tag $image $new_image"
           docker tag $image $new_image
           echo "docker push $new_image"
