@@ -73,7 +73,7 @@ jobs:
           name=${IMAGE_NAME_OVERRIDE:-$IMAGE_NAME}
           version=$(date +%Y%m%d)-${GITHUB_SHA::8}
           image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$name:latest"
-          new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$name$version"
+          new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$name:$version"
           docker build . --file .dockerfile --tag $image
           echo "docker tag $image $new_image"
           docker tag $image $new_image
@@ -88,6 +88,4 @@ jobs:
           echo "磁盘空间清理完毕"
           echo "=============================================================================="
           df -hT
-          echo "=============================================================================="     
-          
-          done < images.txt
+          echo "=============================================================================="
