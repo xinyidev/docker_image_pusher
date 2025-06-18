@@ -70,8 +70,10 @@ jobs:
       - name: Build and push image Aliyun
         run: |
           docker login -u $ALIYUN_REGISTRY_USER -p $ALIYUN_REGISTRY_PASSWORD $ALIYUN_REGISTRY
-          image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$steps.image.outputs.NAME"
-          new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$steps.image.outputs.NAME$steps.version.outputs.VERSION"
+          name=${IMAGE_NAME_OVERRIDE:-$IMAGE_NAME}
+          version=$(date +%Y%m%d)-${GITHUB_SHA::8}
+          image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$name:latest"
+          new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$name$version"
           docker build . --file .dockerfile --tag $image
           echo "docker tag $image $new_image"
           docker tag $image $new_image
