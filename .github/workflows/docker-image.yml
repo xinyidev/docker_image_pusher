@@ -13,7 +13,7 @@ env:
   ALIYUN_REGISTRY_PASSWORD: "${{ secrets.ALIYUN_REGISTRY_PASSWORD }}"
 
   # 默认使用仓库名作为镜像名称
-  IMAGE_NAME: dddocr
+  IMAGE_NAME: PaddleOCR
 
 jobs:
   build:
